@@ -72,3 +72,40 @@ Starting from the original thesis pipeline, the following work was done:
   of this use case identified in the original thesis
 
 ## Project Structure
+AD-IRAS/
+├── config/
+│   └── settings.yaml        ← All configuration (models, paths, metrics)
+├── src/
+│   ├── benchmarker.py       ← Core orchestrator — modified
+│   ├── models.py            ← Model registry
+│   ├── data_loader.py       ← Dataset preprocessing
+│   ├── augmentation.py      ← Albumentations pipeline
+│   ├── reporter.py          ← CSV/JSON export
+│   ├── statengine.py        ← Statistical analysis
+│   └── utils.py             ← Helpers
+└── main.ipynb               ← Main entry point — Google Colab
+
+## Setup
+1. Clone this repo into your Google Drive
+2. Update all paths in `config/settings.yaml`
+3. Open `main.ipynb` in Google Colab
+4. Enable T4 GPU (Runtime → Change runtime type → T4 GPU)
+5. Run all cells in order
+
+## Next Steps (Planned)
+- Run with 3 seeds for statistical reliability
+- Run FastFlow at 500 epochs
+- Test grid-cell spatial approach (RQ2)
+- Run few-shot experiments (k=10)
+- Implement Dataset Factory pattern
+- Test ROI approach
+
+## Author
+Aya Gherri | HiWi | IRAS-HKA | 2026  
+Supervised by: Philipp Augenstein & Till Weber
+"""
+
+with open('README.md', 'w') as f:
+    f.write(readme)
+print("README created!")
+
