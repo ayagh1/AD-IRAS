@@ -1,9 +1,9 @@
 readme = """# AD-IRAS — Anomaly Detection Benchmark for Industrial Computer Inspection
 
 ## Background
-This repository is part of a HiWi project at IRAS-HKA, building on the master thesis:
+This repository is part of a HiWi project at IRAS-HKA, building on a bachelor thesis:
 > *"Deep Learning-based Anomaly Detection in the Assembly of Industrial Computers"*  
-> by Philipp Augenstein, HKA 2026
+> Bachelor Thesis, HKA 2026
 
 The thesis investigates Visual Anomaly Detection (VAD) applied to automated quality 
 inspection of custom-built industrial computers. These computers are produced in a 
@@ -65,11 +65,10 @@ Starting from the original thesis pipeline, the following work was done:
 | WinClip | 16.32% | 0.33% | 0.00% |
 
 ### Key Findings
-- **FastFlow** is the best classifier (67.76% AUROC) — consistent with thesis findings
-- **PaDiM** is the best localiser (68.89% AUPRO) — finds WHERE defects are most accurately
-- **WinClip** achieves competitive classification (49.23%) with **zero training** using only  
-  a text description — validates the value of language-based anomaly detection
-- All models score near random chance on classification except FastFlow — confirming  
-  the difficulty of this use case identified in the original thesis
+- **FastFlow** is the best classifier (67.76% AUROC)
+- **PaDiM** is the best localiser (68.89% AUPRO)
+- **WinClip** achieves competitive classification with zero training
+- All models except FastFlow score near random chance — confirming the difficulty  
+  of this use case identified in the original thesis
 
 ## Project Structure
