@@ -13,17 +13,92 @@ import numpy as np
 from .utils import AUG_MARKER, VALID_EXTENSIONS, _collect_images, _count_images
 
 class DatasetFactory:
+    """
+    Central registry for dataset configurations.
+    Add a new dataset by calling DatasetFactory.register().
+    The benchmark pipeline uses this to handle datasets without hardcoded logic.
+    """
+
     SUPPORTED = {
-        "MVTecAD": {"split": "folder", "masks": True},
-        "VisA":    {"split": "csv",    "masks": True},
-        "custom":  {"split": "folder", "masks": False}
+        "MVTecAD": {
+            "split":        "folder",
+            "masks":        True,
+            "normal_dir":   "train/good",
+            "test_good":    "test/good",
+            "test_bad":     "test/bad",
+            "mask_dir":     "ground_truth/bad",
+            "rename_anomaly": False,
+        },
+        "MVTec2": {
+            "split":        "folder",
+            "masks":        True,
+            "normal_dir":   "train/good",
+            "test_good":    "test_public/good",
+            "test_bad":     "test_public/bad",
+            "mask_dir":     "test_public/ground_truth",
+            "rename_anomaly": False,
+        },
+        "VisA": {
+            "split":        "csv",
+            "masks":        True,
+            "normal_dir":   "train/good",
+            "test_good":    "test/good",
+            "test_bad":     "test/bad",
+            "mask_dir":     "ground_truth/bad",
+            "rename_anomaly": False,
+        },
+        "custom": {
+            "split":        "folder",
+            "masks":        False,
+            "normal_dir":   "train/good",
+            "test_good":    "test/good",
+            "test_bad":     "test/bad",
+            "mask_dir":     "ground_truth/bad",
+            "rename_anomaly": True,
+        },
     }
-    
-    @staticmethod
-    def get(data_source):
-        if data_source in DatasetFactory.SUPPORTED:
-            return DatasetFactory.SUPPORTED[data_source]
-        return DatasetFactory.SUPPORTED["custom"]
+
+    @classmethod
+    def get(cls, data_source: str) -> dict:
+        """Returns dataset config. Falls back to 'custom' for unknown datasets."""
+        config = cls.SUPPORTED.get(data_source, cls.SUPPORTED["custom"])
+        return config.copy()
+
+    @classmethod
+    def register(cls, name: str, **kwargs) -> None:
+        """
+        Register a new dataset configuration.
+        Example:
+            DatasetFactory.register(
+                "MyDataset",
+                split="folder",
+                masks=True,
+                normal_dir="train/good",
+                test_good="test/good",
+                test_bad="test/anomaly",
+                mask_dir="ground_truth/anomaly",
+                rename_anomaly=False,
+            )
+        """
+        base = cls.SUPPORTED["custom"].copy()
+        base.update(kwargs)
+        cls.SUPPORTED[name] = base
+        print(f"  DatasetFactory: registered '{name}' -> {base}")
+
+    @classmethod
+    def has_masks(cls, data_source: str) -> bool:
+        """Returns True if dataset has ground truth masks."""
+        return cls.get(data_source).get("masks", False)
+
+    @classmethod
+    def needs_rename(cls, data_source: str) -> bool:
+        """Returns True if 'anomaly' folders need renaming to 'bad'."""
+        return cls.get(data_source).get("rename_anomaly", True)
+
+    @classmethod
+    def list_supported(cls) -> list:
+        """Returns list of all registered dataset names."""
+        return list(cls.SUPPORTED.keys())
 # ---------------------------------------------------------------------------
 # Grayscale conversion
 # ---------------------------------------------------------------------------

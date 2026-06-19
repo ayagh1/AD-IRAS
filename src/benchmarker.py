@@ -24,6 +24,7 @@ from .data_loader import (
     copy_images_to_pseudo_val,
     generate_black_masks,
     generate_pseudo_anomaly_val_set,
+    DatasetFactory,
 )
 from .engine import PredictionCollector, TrainLossAlias
 from .models import IMAGE_ONLY_MODELS, MODEL_MAPPING
@@ -128,58 +129,50 @@ class BenchmarkRunner:
         return kw
 
     def get_datamodule(self, train_bs: int, eval_bs: int):
-        val_pseudo_dir = self.root / "pseudo_val"
-        if val_pseudo_dir.exists():
-            shutil.rmtree(val_pseudo_dir)
-        test_dir   = self.root / ("test_public" if self.data_source == "MVTec2" else "test")
-        total_test = _count_images(test_dir)
-        safe_bs    = self._safe_eval_batch_size(total_test, eval_bs)
-        common     = self._common_dm_kwargs(train_bs, safe_bs)
+      val_pseudo_dir = self.root / "pseudo_val"
+      if val_pseudo_dir.exists():
+          shutil.rmtree(val_pseudo_dir)
 
-        if self.data_source == "MVTecAD":
-            return MVTecAD(root=str(self.root.parent), category=self.category, **common)
-        if self.data_source == "MVTec2":
-            return Folder(
-                name=self.category, root=str(self.root),
-                normal_dir="train/good", normal_test_dir="test_public/good",
-                abnormal_dir="test_public/bad", mask_dir="test_public/ground_truth",
-                **common,
-            )
-        if self.data_source == "VisA":
-            return Folder(
-                name=self.category, root=str(self.root),
-                normal_dir="train/good", normal_test_dir="test/good",
-                abnormal_dir="test/bad", mask_dir="ground_truth/bad",
-                **common,
-            )
+      ds_cfg   = DatasetFactory.get(self.data_source)
+      test_dir = self.root / ("test_public" if self.data_source == "MVTec2" else "test")
+      total_test = _count_images(test_dir)
+      safe_bs    = self._safe_eval_batch_size(total_test, eval_bs)
+      common     = self._common_dm_kwargs(train_bs, safe_bs)
 
-        train_dir = self.root / "train" / "good"
-        n_orig    = len(_collect_images(train_dir))
-        n_train   = _count_images(train_dir)
-        print(f"\n--- DATASET LOAD SUMMARY: {self.category.upper()} ---")
-        print(f"  Train (Good):   {n_train}  ({n_orig} original + {n_train - n_orig} augmented)")
-        print(f"  Test (Good):    {_count_images(self.root / 'test' / 'good')}")
-        print(f"  Test (Bad):     {_count_images(self.root / 'test' / 'bad')}")
-        print(f"  Masks:          {_count_images(self.root / 'ground_truth' / 'bad')}")
+      if self.data_source == "MVTecAD":
+          return MVTecAD(root=str(self.root.parent), category=self.category, **common)
 
-        val_from_good = self.cfg["threshold"]["method"] == "HARD_THRESHOLD"
-        _abn_dir      = None if _count_images(self.root / "test" / "bad") < 1 else "test/bad"
+      train_dir = self.root / ds_cfg["normal_dir"]
+      n_orig    = len(_collect_images(train_dir))
+      n_train   = _count_images(train_dir)
+      print(f"\n--- DATASET LOAD SUMMARY: {self.category.upper()} ---")
+      print(f"  Train (Good):   {n_train}  ({n_orig} original + {n_train - n_orig} augmented)")
+      print(f"  Test (Good):    {_count_images(self.root / ds_cfg['test_good'])}")
+      print(f"  Test (Bad):     {_count_images(self.root / ds_cfg['test_bad'])}")
+      print(f"  Masks:          {_count_images(self.root / ds_cfg['mask_dir'])}")
 
-        if val_from_good:
-            return Folder(
-                name=self.category, root=str(self.root),
-                normal_dir="train/good", abnormal_dir=_abn_dir,
-                normal_test_dir="test/good", mask_dir="ground_truth/bad",
-                val_split_mode="from_train", val_split_ratio=0.2,
-                **common,
-            )
-        return Folder(
-            name=self.category, root=str(self.root),
-            normal_dir="train/good", abnormal_dir=_abn_dir,
-            normal_test_dir="test/good", mask_dir="ground_truth/bad",
-            val_split_mode="from_test", val_split_ratio=0.0,
-            **common,
-        )
+      _abn_dir = None if _count_images(self.root / ds_cfg["test_bad"]) < 1 else ds_cfg["test_bad"]
+      val_from_good = self.cfg["threshold"]["method"] == "HARD_THRESHOLD"
+
+      if val_from_good:
+          return Folder(
+              name=self.category, root=str(self.root),
+              normal_dir=ds_cfg["normal_dir"],
+              abnormal_dir=_abn_dir,
+              normal_test_dir=ds_cfg["test_good"],
+              mask_dir=ds_cfg["mask_dir"],
+              val_split_mode="from_train", val_split_ratio=0.2,
+              **common,
+          )
+      return Folder(
+          name=self.category, root=str(self.root),
+          normal_dir=ds_cfg["normal_dir"],
+          abnormal_dir=_abn_dir,
+          normal_test_dir=ds_cfg["test_good"],
+          mask_dir=ds_cfg["mask_dir"],
+          val_split_mode="from_test", val_split_ratio=0.0,
+          **common,
+      )
 
     def get_train_val_datamodule(self, train_bs: int, eval_bs: int, seed: int):
         """built a DataModule with a Pseudo-Anomalie-Val-Set (for Threshold calibration)."""
@@ -241,43 +234,29 @@ class BenchmarkRunner:
         )
 
     def get_test_only_datamodule(self, train_bs: int, eval_bs: int):
-        """DataModule specialized for evaluation purposes (no training split)."""
-        test_dir   = self.root / ("test_public" if self.data_source == "MVTec2" else "test")
-        total_test = _count_images(test_dir)
-        safe_bs    = self._safe_eval_batch_size(total_test, eval_bs)
+      ds_cfg   = DatasetFactory.get(self.data_source)
+      test_dir = self.root / ("test_public" if self.data_source == "MVTec2" else "test")
+      total_test = _count_images(test_dir)
+      safe_bs    = self._safe_eval_batch_size(total_test, eval_bs)
 
-        if self.data_source == "MVTecAD":
-            return MVTecAD(root=str(self.root.parent), category=self.category,
-                           train_batch_size=train_bs, eval_batch_size=safe_bs,
-                           num_workers=self.cfg["training"]["num_workers"])
-        if self.data_source == "MVTec2":
-            return Folder(
-                name=self.category, root=str(self.root),
-                normal_dir="train/good", normal_test_dir="test_public/good",
-                abnormal_dir="test_public/bad", mask_dir="test_public/ground_truth",
-                val_split_mode="none",
-                train_batch_size=train_bs, eval_batch_size=safe_bs,
-                num_workers=self.cfg["training"]["num_workers"],
-            )
-        if self.data_source == "VisA":
-            return Folder(
-                name=self.category, root=str(self.root),
-                normal_dir="train/good", normal_test_dir="test/good",
-                abnormal_dir="test/bad", mask_dir="ground_truth/bad",
-                val_split_mode="none",
-                train_batch_size=train_bs, eval_batch_size=safe_bs,
-                num_workers=self.cfg["training"]["num_workers"],
-            )
-        _abn_dir = None if _count_images(self.root / "test" / "bad") < 1 else "test/bad"
-        return Folder(
-            name=self.category, root=str(self.root),
-            normal_dir="train/good", abnormal_dir=_abn_dir,
-            normal_test_dir="test/good", mask_dir="ground_truth/bad",
-            val_split_mode="none",
-            train_batch_size=train_bs, eval_batch_size=safe_bs,
-            num_workers=self.cfg["training"]["num_workers"],
-        )
+      if self.data_source == "MVTecAD":
+          return MVTecAD(
+              root=str(self.root.parent), category=self.category,
+              train_batch_size=train_bs, eval_batch_size=safe_bs,
+              num_workers=self.cfg["training"]["num_workers"]
+          )
 
+      _abn_dir = None if _count_images(self.root / ds_cfg["test_bad"]) < 1 else ds_cfg["test_bad"]
+      return Folder(
+          name=self.category, root=str(self.root),
+          normal_dir=ds_cfg["normal_dir"],
+          abnormal_dir=_abn_dir,
+          normal_test_dir=ds_cfg["test_good"],
+          mask_dir=ds_cfg["mask_dir"],
+          val_split_mode="none",
+          train_batch_size=train_bs, eval_batch_size=safe_bs,
+          num_workers=self.cfg["training"]["num_workers"],
+      )
     def get_evaluator(self, model_name: str, disable_aupimo: bool = False) -> Evaluator:
         if _count_images(self.root / "test" / "bad") < 1:
             return Evaluator(test_metrics=[], compute_on_cpu=False)
