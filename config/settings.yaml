@@ -1,0 +1,352 @@
+# =============================================================================
+# Anomaly Detection Benchmark – Configuration
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Project directory: Root path to the 'anomaly_detection/' folder (containing src/ and config/)
+# ---------------------------------------------------------------------------
+project_dir: "/content/drive/MyDrive/ADIRAS/anomaly_detection"                         
+
+# ---------------------------------------------------------------------------
+# Paths (Google Drive)
+# ---------------------------------------------------------------------------
+paths:
+  base_dataset_root:    "/content/drive/MyDrive/ADIRAS/datasets/"
+  all_section_images:   "/content/drive/MyDrive/ADIRAS/datasets/AllSectionImages"
+  fewshot_dataset:      "/content/drive/MyDrive/ADIRAS/datasets/FewShot1344GridDataset_8020"
+  golden_unit_defects:  "/content/drive/MyDrive/ADIRAS/datasets/golden_unit_defects"
+  generated_anomalies:  "/content/drive/MyDrive/ADIRAS/datasets/generated_anomalies"
+  imagenette:           "/content/drive/MyDrive/ADIRAS/datasets/imagenette"
+  draem_textures:       "/content/drive/MyDrive/ADIRAS/datasets/DRAEM_TEXTURES"
+  output_dir:           "/content/drive/MyDrive/ADIRAS/results_elma_benchmark/"
+  local_workspace:      "/content/local_workspace"
+  temp_results:         "/content/temp_results"
+  temp_checkpoints:     "/content/temp_checkpoints"
+
+# ---------------------------------------------------------------------------
+# Run-Settings
+# ---------------------------------------------------------------------------
+run:
+  # Dataset Source: Choose a available dataset
+  # ── Available DATA_SOURCE Options (depending on installed modules):
+  # anomalib MVTecAD:       DATA_SOURCE = "MVTecAD"
+  #     → expects: BASE_PATH/MVTecAD/<category>/
+  # anomalib Folder:        DATA_SOURCE = "MVTec2"  
+  #     → expects: BASE_PATH/mvtec_ad_2/<category>/
+  # anomalib VisA:          DATA_SOURCE = "VisA"
+  #     → expects: BASE_PATH/visa/<category>/
+  # Custom Folder datasets: DATA_SOURCE = "AllSectionImages", "FewShot1344GridDataset_8020", etc.
+  #     → expects: BASE_PATH/<DATA_SOURCE>/<category>/
+  data_source: "MaskedDataset"
+  
+  # Categories to Process:
+  # - None (standard):       Process ALL categories in the dataset folder
+  # - ["category1", ...]:   Process only these categories
+  # Examples:
+  #   MVTec:     ["bottle", "cable", "carpet", "grid", ...]
+  #   Custom:    ["housing_front", "housing_back", "pcb4", ...]
+  categories: ["Computer"]  # null = all categories
+  
+  seeds:          [420]                # if single seed: [420], if multiple seeds: [72, 42, 111,666,1001] or [72, 42, 111,666, 420,999,123,686,700,1]
+  colour_modes:   ["rgb"]              # "rgb" | "grey_imagenet" | "grey_adapted" | "shuffle"
+  channel_shuffle_permutation: [2, 0, 1]
+  allow_normal_only_categories: false
+  save_run_models: false
+  models_to_save: []
+  winclip_manual_prompt: "a defective industrial computer with missing screws,wrong cables, or damaged components"
+  use_folder_prompts: false
+
+# ---------------------------------------------------------------------------
+# Training & Dataloading  –  Global Defaults
+# ---------------------------------------------------------------------------
+# These values are used as fallbacks for ALL models.
+# Any value can be overridden per model in models.config.<ModelName> (see below).
+#
+# Override priority for batch size (highest → lowest):
+#   1. models.config.<Model>.train_batch_size   – explicit train-only override
+#   2. models.config.<Model>.batch_size         – per-model override
+#   3. training.batch_size                      – global fallback (this value)
+training:
+  resize_img:  256
+  batch_size:  16   # global fallback — override per model via models.config.<Model>.batch_size
+  num_workers: 2
+  seed:        42
+  baseline_config: true
+
+# ---------------------------------------------------------------------------
+# Augmentation
+# ---------------------------------------------------------------------------
+augmentation:
+  enabled:             true
+  images_per_original: 1
+  seed:                3
+  pipeline:
+    - type: "HorizontalFlip"
+      p: 0.5
+    - type: "VerticalFlip"
+      p: 0.5
+    - type: "Rotate"
+      limit: 180
+      p: 0.8
+    - type: "RandomBrightnessContrast"
+      brightness_limit: 0.05
+      contrast_limit: 0.05
+      p: 0.5
+  perlin:
+    enabled:        false
+    anomaly_source_path: null
+    probability:    0.5
+    blend_factor:   [0.1, 0.5]
+    rotation_range: [-90, 90]
+
+# ---------------------------------------------------------------------------
+# Threshold / Validation
+# ---------------------------------------------------------------------------
+threshold:
+  method:        "NOISE_INJECTION"   # NOISE_INJECTION | MANUAL_ANOMALIES | GENERATIVE_AI | HARD_THRESHOLD | SAME_AS_TEST
+  noise_injection:
+    gaussian_std:       null
+    std_multiplier:     1.0
+    n_images:           15
+    active_methods:     ["gauss", "noise_patch", "color_patch", "multiplicative", "shot"]
+    patch_holes:        [1, 3]
+    patch_height:       [0.08, 0.30]
+    patch_width:        [0.08, 0.30]
+    n_samples_save:     10
+    sensitivity_override: null
+  manual_anomalies:
+    n_images:            null
+    n_samples_save:      10
+    sensitivity_override: null
+  generative_ai:
+    n_images:            null
+    n_samples_save:      10
+    sensitivity_override: null
+  hard:
+    image_sensitivity: 0.5
+    pixel_sensitivity: 0.5
+
+# ---------------------------------------------------------------------------
+# Evaluation & Metrics
+# ---------------------------------------------------------------------------
+evaluation:
+  primary_metric: "Image AUROC"
+  metrics:
+    - "Image AUROC"
+    - "Image AUPRC"
+    - "Image F1"
+
+# ---------------------------------------------------------------------------
+# Statistics
+# ---------------------------------------------------------------------------
+statistics:
+  alpha:           0.05
+  ci_level:     0.95
+  n_bootstrap:  10000
+  bonferroni:   true
+  bootstrap_on_raw: false
+
+# ---------------------------------------------------------------------------
+# Visualization
+# ---------------------------------------------------------------------------
+visualization:
+  heatmap:
+    enabled: false
+    fields_config:
+      image: {}
+      anomaly_map:
+        colormap:  "hot"
+        normalize: true
+      gt_mask:
+        mode:  "fill"
+        alpha: 1
+        color: [255, 255, 255]
+  custom:
+    enabled:                 true
+    colormap:                16        # cv2.COLORMAP_VIRIDIS = 16
+    font_scale:              0.30
+    font_thickness:          1
+    mask_color:              [0, 0, 255]
+    mask_thickness:          2
+    postproc:
+      enabled:               true
+      gaussian_sigma:        2.0       # smooths blocky patch artifacts; 0 = off
+      closing_kernel:        5         # morphological close kernel size; 0 = off
+      min_defect_area:       10        # remove CC regions smaller than this (px²)
+
+# ---------------------------------------------------------------------------
+# Models
+# ---------------------------------------------------------------------------
+# Global backbone defaults — applied automatically to all compatible models.
+# To override a backbone for a single model, add the key inside that model's
+# model_args block (see per-model config below).
+#
+# Override priority for backbone (highest → lowest):
+#   1. models.config.<Model>.model_args.backbone        – per-model (CNN models)
+#   2. models.config.<Model>.model_args.layers          – per-model (CNN feature layers)
+#   3. models.config.<Model>.model_args.encoder_name    – per-model (ViT models)
+#   4. models.backbone_cnn / backbone_layers / backbone_vit  – global (this section)
+models:
+  to_run:
+    - "AnomalyDINO"
+    - "Padim"
+    - "Patchcore"
+    - "WinClip"
+    - "Fastflow"
+  image_only_models:
+    - "Dfkde"
+    - "Dfm"
+    - "WinClip"
+  gradient_models:
+    - "Fastflow"
+    - "Cflow"
+    - "Csflow"
+    - "Uflow"
+    - "UniNet"
+  backbone_cnn:    "wide_resnet50_2"    # global CNN backbone — override via model_args.backbone
+  backbone_layers: ["layer2", "layer3"] # global feature layers — override via model_args.layers
+  backbone_vit:    "dinov2reg_vit_base_14" # global ViT backbone — override via model_args.encoder_name
+
+  # -------------------------------------------------------------------------
+  # Per-model configuration
+  # -------------------------------------------------------------------------
+  # Each entry can set:
+  #   epochs            – number of training epochs
+  #   batch_size        – overrides training.batch_size for this model
+  #   train_batch_size  – overrides batch_size for training only
+  #   eval_batch_size   – overrides batch_size for evaluation only
+  #   model_args:
+  #     backbone        – overrides models.backbone_cnn   (CNN models only)
+  #     layers          – overrides models.backbone_layers (CNN models only)
+  #     encoder_name    – overrides models.backbone_vit   (ViT models only)
+  #     <any other key> – passed directly to the model constructor
+  #
+  # Any key not set here falls back to the global default in training: or models:
+  #
+  # Example – use a lighter backbone and smaller batch only for Padim:
+  #   Padim:
+  #     batch_size: 8
+  #     model_args:
+  #       backbone: "resnet18"
+  #       layers: ["layer2", "layer3"]
+  config:
+    WinClip:
+      epochs: 1
+      batch_size: 16
+    Dfkde:
+      epochs: 1
+      batch_size: 16
+    Dfm:
+      epochs: 1
+      batch_size: 16
+    Padim:
+      epochs: 1
+      batch_size: 16
+      model_args:
+        n_features: 550
+    Patchcore:
+      epochs: 1
+      batch_size: 1
+      model_args:
+        coreset_sampling_ratio: 0.1
+        num_neighbors: 9
+    Fre:
+      epochs: 1
+      batch_size: 16
+      model_args:
+        pre_trained: true
+        pooling_kernel_size: 2
+        input_dim: 65536
+        latent_dim: 220
+    Dinomaly:
+      epochs: 200
+      batch_size: 16
+      model_args:
+        bottleneck_dropout: 0.2
+        decoder_depth: 8
+    AnomalyDINO:
+      epochs: 1
+      batch_size: 16
+      eval_batch_size: 1
+      model_args:
+        num_neighbours: 9
+    SuperSimpleNet:
+      epochs: 300
+      batch_size: 8
+      model_args:
+        perlin_threshold: 0.2
+        supervised: false
+    EfficientAd:
+      epochs: 250
+      train_batch_size: 1
+      eval_batch_size: 16
+      model_args:
+        teacher_out_channels: 384
+        padding: false
+        pad_maps: true
+    ReverseDistillation:
+      epochs: 200
+      batch_size: 16
+    Stfpm:
+      epochs: 200
+      batch_size: 16
+    UniNet:
+      epochs: 200
+      batch_size: 4
+      model_args:
+        temperature: 2
+    Fastflow:
+      epochs: 50
+      batch_size: 16
+      eval_batch_size: 16
+      model_args:
+        pre_trained: true
+        flow_steps: 8
+        conv3x3_only: false
+        hidden_ratio: 1.0
+    Cflow:
+      epochs: 200
+      batch_size: 16
+      model_args:
+        coupling_blocks: 8
+        clamp_alpha: 1.9
+        permute_soft: false
+        condition_vector: 128
+        fiber_batch_size: 256
+    Csflow:
+      epochs: 240
+      batch_size: 16
+      model_args:
+        cross_conv_hidden_channels: 1024
+        n_coupling_blocks: 4
+        clamp: 3
+    Uflow:
+      epochs: 20
+      batch_size: 4
+      model_args:
+        flow_steps: 8
+        affine_clamp: 2.0
+        affine_subnet_channels_ratio: 1.0
+        permute_soft: false
+    Draem:
+      epochs: 700
+      batch_size: 16
+      model_args:
+        enable_sspcab: false
+        sspcab_lambda: 0.1
+        beta: [0.3, 0.8]
+    Dsr:
+      epochs: 200
+      batch_size: 16
+      model_args:
+        latent_anomaly_strength: 0.2
+        upsampling_train_ratio: 0.7
+    Cfa:
+      epochs: 30
+      batch_size: 16
+      model_args:
+        gamma_c: 1
+        gamma_d: 1
+        num_nearest_neighbors: 3
+        num_hard_negative_features: 3
+        radius: 0.00001
