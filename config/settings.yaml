@@ -135,6 +135,11 @@ evaluation:
     - "Image AUROC"
     - "Image AUPRC"
     - "Image F1"
+    - "Pixel AUROC"
+    - "Pixel F1"
+    - "Pixel AUPRC"
+    - "Pixel AUPRO"
+    - "Pixel AUPIMO"
 
 # ---------------------------------------------------------------------------
 # Statistics
@@ -187,12 +192,8 @@ visualization:
 #   3. models.config.<Model>.model_args.encoder_name    – per-model (ViT models)
 #   4. models.backbone_cnn / backbone_layers / backbone_vit  – global (this section)
 models:
-  to_run:
-    - "AnomalyDINO"
-    - "Padim"
-    - "Patchcore"
-    - "WinClip"
-    - "Fastflow"
+  to_run: 
+    - "Uflow"
   image_only_models:
     - "Dfkde"
     - "Dfm"
@@ -259,7 +260,7 @@ models:
         input_dim: 65536
         latent_dim: 220
     Dinomaly:
-      epochs: 200
+      epochs: 50
       batch_size: 16
       model_args:
         bottleneck_dropout: 0.2
