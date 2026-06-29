@@ -106,18 +106,28 @@ All models struggle near random chance except the two normalising flows
 ---
 
 ## Project Structure
-AD-IRAS/
+AAD-IRAS/
 
 ├── config/
+
 │   └── settings.yaml        ← All configuration (models, paths, metrics)
+
 ├── src/
+
 │   ├── benchmarker.py       ← Core orchestrator — WinCLIP fix, DatasetFactory
+
 │   ├── data_loader.py       ← Dataset preprocessing + DatasetFactory
+
 │   ├── models.py            ← Model registry
+
 │   ├── augmentation.py      ← Albumentations pipeline
+
 │   ├── reporter.py          ← CSV/JSON export
+
 │   ├── statengine.py        ← Statistical analysis
+
 │   └── utils.py             ← Helpers
+
 └── main.ipynb               ← Main entry point (Google Colab)
 
 ## Setup
