@@ -56,6 +56,15 @@ class DatasetFactory:
             "mask_dir":     "ground_truth/bad",
             "rename_anomaly": True,
         },
+        "ROIDataset": {
+            "split":          "folder",
+            "masks":          True,
+            "normal_dir":     "train/good",
+            "test_good":      "test/good",
+            "test_bad":       "test/anomaly",
+            "mask_dir":       "ground_truth/anomaly",
+            "rename_anomaly": False,
+        },
     }
 
     @classmethod

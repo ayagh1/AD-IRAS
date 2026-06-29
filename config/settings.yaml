@@ -37,7 +37,7 @@ run:
   #     → expects: BASE_PATH/visa/<category>/
   # Custom Folder datasets: DATA_SOURCE = "AllSectionImages", "FewShot1344GridDataset_8020", etc.
   #     → expects: BASE_PATH/<DATA_SOURCE>/<category>/
-  data_source: "MaskedDataset"
+  data_source: "ROIDataset"
   
   # Categories to Process:
   # - None (standard):       Process ALL categories in the dataset folder
@@ -193,6 +193,11 @@ visualization:
 #   4. models.backbone_cnn / backbone_layers / backbone_vit  – global (this section)
 models:
   to_run: 
+    - "AnomalyDINO"
+    - "Padim"
+    - "Patchcore"
+    - "WinClip"
+    - "Fastflow"
     - "Uflow"
   image_only_models:
     - "Dfkde"
