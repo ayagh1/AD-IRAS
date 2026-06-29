@@ -155,13 +155,3 @@ Registered in `DatasetFactory` (`src/data_loader.py`):
 Aya Gherri | HiWi | IRAS-HKA | 2026
 Supervised by: Philipp Augenstein & Till Weber
 """
-
-with open('/content/drive/MyDrive/ADIRAS/anomaly_detection/README.md', 'w') as f:
-    f.write(readme)
-print("✅ README updated!")
-
-import os
-os.chdir('/content/drive/MyDrive/ADIRAS/anomaly_detection')
-!git add README.md
-!git commit -m "Update README with full results, ROI experiment and contributions"
-!git push origin master
